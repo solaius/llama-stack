@@ -230,6 +230,7 @@ class AgentConfigCommon(BaseModel):
 class AgentConfig(AgentConfigCommon):
     model: str
     instructions: str
+    name: Optional[str] = None
     enable_session_persistence: Optional[bool] = False
     response_format: Optional[ResponseFormat] = None
 
@@ -374,9 +375,11 @@ class AgentInfo(BaseModel):
     """Information about an agent.
 
     :param agent_id: The ID of the agent.
+    :param name: The name of the agent.
     :param config: The full configuration of the agent.
     """
     agent_id: str
+    name: Optional[str] = None
     config: AgentConfig
 
 
