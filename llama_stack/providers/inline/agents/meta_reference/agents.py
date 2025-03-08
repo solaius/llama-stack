@@ -9,11 +9,13 @@ import logging
 import shutil
 import tempfile
 import uuid
-from typing import AsyncGenerator, List, Optional, Union
+from typing import AsyncGenerator, Dict, List, Optional, Union
 
 from llama_stack.apis.agents import (
     AgentConfig,
     AgentCreateResponse,
+    AgentInfo,
+    AgentListResponse,
     Agents,
     AgentSessionCreateResponse,
     AgentStepResponse,
@@ -62,6 +64,9 @@ class MetaReferenceAgentsImpl(Agents):
 
         self.in_memory_store = InmemoryKVStoreImpl()
         self.tempdir = tempfile.mkdtemp()
+        
+        # Keep track of agent IDs for the list endpoint
+        self.agent_ids = []
 
     async def initialize(self) -> None:
         self.persistence_store = await kvstore_impl(self.config.persistence_store)
@@ -69,6 +74,15 @@ class MetaReferenceAgentsImpl(Agents):
         # check if "bwrap" is available
         if not shutil.which("bwrap"):
             logger.warning("Warning: `bwrap` is not available. Code interpreter tool will not work correctly.")
+            
+        # Load the agent IDs from the persistence store
+        agent_ids_json = await self.persistence_store.get("agent_ids")
+        if agent_ids_json:
+            try:
+                self.agent_ids = json.loads(agent_ids_json)
+            except Exception as e:
+                logger.error(f"Error loading agent IDs: {str(e)}")
+                self.agent_ids = []
 
     async def create_agent(
         self,
@@ -80,6 +94,16 @@ class MetaReferenceAgentsImpl(Agents):
             key=f"agent:{agent_id}",
             value=agent_config.model_dump_json(),
         )
+        
+        # Track the agent ID for the list endpoint
+        self.agent_ids.append(agent_id)
+        
+        # Also store a list of all agent IDs for persistence
+        await self.persistence_store.set(
+            key="agent_ids",
+            value=json.dumps(self.agent_ids),
+        )
+        
         return AgentCreateResponse(
             agent_id=agent_id,
         )
@@ -229,6 +253,77 @@ class MetaReferenceAgentsImpl(Agents):
 
     async def delete_agent(self, agent_id: str) -> None:
         await self.persistence_store.delete(f"agent:{agent_id}")
+        
+        # Remove the agent ID from the list
+        if agent_id in self.agent_ids:
+            self.agent_ids.remove(agent_id)
+            
+            # Update the list in the persistence store
+            await self.persistence_store.set(
+                key="agent_ids",
+                value=json.dumps(self.agent_ids),
+            )
+        
+    async def list_agents(self) -> AgentListResponse:
+        """List all available agents.
+        
+        :returns: An AgentListResponse with a list of available agents.
+        """
+        agents = []
+        
+        # Use the tracked agent IDs to get the agent configs
+        for agent_id in self.agent_ids:
+            try:
+                agent_config_json = await self.persistence_store.get(f"agent:{agent_id}")
+                if agent_config_json:
+                    agent_config_dict = json.loads(agent_config_json)
+                    agent_config = AgentConfig(**agent_config_dict)
+                    
+                    agents.append(
+                        AgentInfo(
+                            agent_id=agent_id,
+                            model=agent_config.model,
+                            instructions=agent_config.instructions,
+                        )
+                    )
+            except Exception as e:
+                logger.error(f"Error loading agent {agent_id}: {str(e)}")
+        
+        # For in-memory store, also check for any agents that might not be in our tracked list
+        if isinstance(self.persistence_store, InmemoryKVStoreImpl):
+            for key, value in self.persistence_store._store.items():
+                if key.startswith("agent:") and key != "agent_ids":
+                    agent_id = key[6:]  # Remove "agent:" prefix
+                    
+                    # Skip if we've already processed this agent
+                    if agent_id in [agent.agent_id for agent in agents]:
+                        continue
+                    
+                    try:
+                        agent_config_dict = json.loads(value)
+                        agent_config = AgentConfig(**agent_config_dict)
+                        
+                        agents.append(
+                            AgentInfo(
+                                agent_id=agent_id,
+                                model=agent_config.model,
+                                instructions=agent_config.instructions,
+                            )
+                        )
+                        
+                        # Add to our tracked list for future reference
+                        if agent_id not in self.agent_ids:
+                            self.agent_ids.append(agent_id)
+                    except Exception as e:
+                        logger.error(f"Error loading agent {agent_id}: {str(e)}")
+            
+            # Update the agent_ids in the persistence store
+            await self.persistence_store.set(
+                key="agent_ids",
+                value=json.dumps(self.agent_ids),
+            )
+                
+        return AgentListResponse(agents=agents)
 
     async def shutdown(self) -> None:
         pass

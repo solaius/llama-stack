@@ -369,6 +369,28 @@ class AgentStepResponse(BaseModel):
     step: Step
 
 
+@json_schema_type
+class AgentInfo(BaseModel):
+    """Information about an agent.
+
+    :param agent_id: The ID of the agent.
+    :param model: The model used by the agent.
+    :param instructions: The instructions for the agent.
+    """
+    agent_id: str
+    model: str
+    instructions: str
+
+
+@json_schema_type
+class AgentListResponse(BaseModel):
+    """Response for listing available agents.
+
+    :param agents: List of available agents.
+    """
+    agents: List[AgentInfo]
+
+
 @runtime_checkable
 @trace_protocol
 class Agents(Protocol):
@@ -539,5 +561,15 @@ class Agents(Protocol):
         """Delete an agent by its ID.
 
         :param agent_id: The ID of the agent to delete.
+        """
+        ...
+        
+    @webmethod(route="/agents/list", method="GET")
+    async def list_agents(
+        self,
+    ) -> AgentListResponse:
+        """List all available agents.
+
+        :returns: An AgentListResponse with a list of available agents.
         """
         ...
