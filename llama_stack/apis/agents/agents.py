@@ -374,12 +374,10 @@ class AgentInfo(BaseModel):
     """Information about an agent.
 
     :param agent_id: The ID of the agent.
-    :param model: The model used by the agent.
-    :param instructions: The instructions for the agent.
+    :param config: The full configuration of the agent.
     """
     agent_id: str
-    model: str
-    instructions: str
+    config: AgentConfig
 
 
 @json_schema_type

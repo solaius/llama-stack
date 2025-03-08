@@ -282,8 +282,7 @@ class MetaReferenceAgentsImpl(Agents):
                     agents.append(
                         AgentInfo(
                             agent_id=agent_id,
-                            model=agent_config.model,
-                            instructions=agent_config.instructions,
+                            config=agent_config,
                         )
                     )
             except Exception as e:
@@ -306,8 +305,7 @@ class MetaReferenceAgentsImpl(Agents):
                         agents.append(
                             AgentInfo(
                                 agent_id=agent_id,
-                                model=agent_config.model,
-                                instructions=agent_config.instructions,
+                                config=agent_config,
                             )
                         )
                         
