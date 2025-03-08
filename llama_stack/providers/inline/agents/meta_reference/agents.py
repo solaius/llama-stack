@@ -282,7 +282,6 @@ class MetaReferenceAgentsImpl(Agents):
                     agents.append(
                         AgentInfo(
                             agent_id=agent_id,
-                            name=agent_config.name,
                             config=agent_config,
                         )
                     )
@@ -306,7 +305,6 @@ class MetaReferenceAgentsImpl(Agents):
                         agents.append(
                             AgentInfo(
                                 agent_id=agent_id,
-                                name=agent_config.name,
                                 config=agent_config,
                             )
                         )
