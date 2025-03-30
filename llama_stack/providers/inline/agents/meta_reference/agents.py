@@ -28,6 +28,7 @@ from llama_stack.apis.agents import (
     Session,
     Turn,
 )
+from llama_stack.providers.inline.agents.meta_reference.persistence import AgentSessionInfo
 from llama_stack.apis.inference import (
     Inference,
     ToolConfig,
