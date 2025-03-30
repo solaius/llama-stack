@@ -231,10 +231,14 @@ class ResponseFormatType(Enum):
 
     :cvar json_schema: Response should conform to a JSON schema. In a Python SDK, this is often a `pydantic` model.
     :cvar grammar: Response should conform to a BNF grammar
+    :cvar json_object: Response should be a JSON object
+    :cvar text: Response should be plain text
     """
 
     json_schema = "json_schema"
     grammar = "grammar"
+    json_object = "json_object"
+    text = "text"
 
 
 @json_schema_type
@@ -261,8 +265,28 @@ class GrammarResponseFormat(BaseModel):
     bnf: Dict[str, Any]
 
 
+@json_schema_type
+class JsonObjectResponseFormat(BaseModel):
+    """Configuration for JSON object response generation.
+
+    :param type: Must be "json_object" to identify this format type
+    """
+
+    type: Literal[ResponseFormatType.json_object.value] = ResponseFormatType.json_object.value
+
+
+@json_schema_type
+class TextResponseFormat(BaseModel):
+    """Configuration for plain text response generation.
+
+    :param type: Must be "text" to identify this format type
+    """
+
+    type: Literal[ResponseFormatType.text.value] = ResponseFormatType.text.value
+
+
 ResponseFormat = Annotated[
-    Union[JsonSchemaResponseFormat, GrammarResponseFormat],
+    Union[JsonSchemaResponseFormat, GrammarResponseFormat, JsonObjectResponseFormat, TextResponseFormat],
     Field(discriminator="type"),
 ]
 register_schema(ResponseFormat, name="ResponseFormat")
