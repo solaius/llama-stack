@@ -228,7 +228,14 @@ class AgentConfig(AgentConfigCommon):
     model: str
     instructions: str
     enable_session_persistence: Optional[bool] = False
-    response_format: Optional[ResponseFormat] = Field(default=None, description="Format for the model's response. If provided, must include a 'type' field with one of: 'json_schema', 'grammar', 'json_object', or 'text'.")
+    response_format: Optional[ResponseFormat] = Field(
+        default=None,
+        description="Format for the model's response. If provided, must include a 'type' field with one of: 'json_schema', 'grammar', 'json_object', or 'text'.",
+        examples=[
+            {"type": "json_object"},
+            {"type": "text"}
+        ]
+    )
 
 
 @json_schema_type

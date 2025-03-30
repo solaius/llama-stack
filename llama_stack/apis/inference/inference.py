@@ -297,7 +297,14 @@ class CompletionRequest(BaseModel):
     model: str
     content: InterleavedContent
     sampling_params: Optional[SamplingParams] = Field(default_factory=SamplingParams)
-    response_format: Optional[ResponseFormat] = None
+    response_format: Optional[ResponseFormat] = Field(
+        default=None,
+        description="Format for the model's response. If provided, must include a 'type' field with one of: 'json_schema', 'grammar', 'json_object', or 'text'.",
+        examples=[
+            {"type": "json_object"},
+            {"type": "text"}
+        ]
+    )
     stream: Optional[bool] = False
     logprobs: Optional[LogProbConfig] = None
 
@@ -380,7 +387,14 @@ class ChatCompletionRequest(BaseModel):
     tools: Optional[List[ToolDefinition]] = Field(default_factory=list)
     tool_config: Optional[ToolConfig] = Field(default_factory=ToolConfig)
 
-    response_format: Optional[ResponseFormat] = None
+    response_format: Optional[ResponseFormat] = Field(
+        default=None,
+        description="Format for the model's response. If provided, must include a 'type' field with one of: 'json_schema', 'grammar', 'json_object', or 'text'.",
+        examples=[
+            {"type": "json_object"},
+            {"type": "text"}
+        ]
+    )
     stream: Optional[bool] = False
     logprobs: Optional[LogProbConfig] = None
 
