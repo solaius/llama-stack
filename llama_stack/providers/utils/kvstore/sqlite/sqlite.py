@@ -66,3 +66,23 @@ class SqliteKVStoreImpl(KVStore):
                     _, value, _ = row
                     result.append(value)
                 return result
+                
+    async def list_keys(self, prefix: Optional[str] = None) -> List[str]:
+        async with aiosqlite.connect(self.db_path) as db:
+            if prefix is None:
+                async with db.execute(f"SELECT key FROM {self.table_name}") as cursor:
+                    result = []
+                    async for row in cursor:
+                        result.append(row[0])
+                    return result
+            else:
+                # SQLite doesn't have a native LIKE operator that works with parameters,
+                # so we need to use the || operator to concatenate the prefix with '%'
+                async with db.execute(
+                    f"SELECT key FROM {self.table_name} WHERE key LIKE ? || '%'",
+                    (prefix,),
+                ) as cursor:
+                    result = []
+                    async for row in cursor:
+                        result.append(row[0])
+                    return result
