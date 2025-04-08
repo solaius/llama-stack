@@ -633,3 +633,64 @@ def test_multi_tool_calls(llama_stack_client_with_mocked_inference, agent_config
 
     output = response.output_message.content.lower()
     assert "-100" in output and "-212" in output
+
+
+def test_list_agents_and_sessions(llama_stack_client_with_mocked_inference, agent_config):
+    # Create a few agents
+    agent1 = Agent(llama_stack_client_with_mocked_inference, **agent_config)
+    agent2 = Agent(llama_stack_client_with_mocked_inference, **{**agent_config, "instructions": "You are a helpful assistant for test 2"})
+    
+    # Create sessions for the agents
+    session_id1 = agent1.create_session(f"test-session-1-{uuid4()}")
+    session_id2 = agent1.create_session(f"test-session-2-{uuid4()}")
+    session_id3 = agent2.create_session(f"test-session-3-{uuid4()}")
+    
+    # List agents
+    agents_response = llama_stack_client_with_mocked_inference.agents.get("/agents")
+    
+    # Verify that the agents are in the list
+    agent_ids = [agent["agent_id"] for agent in agents_response["data"]]
+    assert agent1.agent_id in agent_ids
+    assert agent2.agent_id in agent_ids
+    
+    # Verify that the agent configurations are correct
+    for agent_info in agents_response["data"]:
+        if agent_info["agent_id"] == agent1.agent_id:
+            assert agent_info["config"]["model"] == agent_config["model"]
+            assert agent_info["config"]["instructions"] == agent_config["instructions"]
+        elif agent_info["agent_id"] == agent2.agent_id:
+            assert agent_info["config"]["model"] == agent_config["model"]
+            assert agent_info["config"]["instructions"] == "You are a helpful assistant for test 2"
+    
+    # Get a specific agent
+    agent_response = llama_stack_client_with_mocked_inference.agents.get(f"/agents/{agent1.agent_id}")
+    assert agent_response["agent_id"] == agent1.agent_id
+    assert agent_response["config"]["model"] == agent_config["model"]
+    assert agent_response["config"]["instructions"] == agent_config["instructions"]
+    
+    # List sessions for agent1
+    sessions_response = llama_stack_client_with_mocked_inference.agents.get(f"/agents/{agent1.agent_id}/sessions")
+    
+    # Verify that the sessions are in the list
+    session_ids = [session["session_id"] for session in sessions_response["data"]]
+    assert session_id1 in session_ids
+    assert session_id2 in session_ids
+    assert session_id3 not in session_ids  # This session belongs to agent2
+    
+    # Create a turn for one of the sessions
+    agent1.create_turn(
+        messages=[
+            {
+                "role": "user",
+                "content": "Hello, how are you?",
+            }
+        ],
+        session_id=session_id1,
+    )
+    
+    # List sessions again and verify that the turn is included
+    sessions_response = llama_stack_client_with_mocked_inference.agents.get(f"/agents/{agent1.agent_id}/sessions")
+    for session in sessions_response["data"]:
+        if session["session_id"] == session_id1:
+            assert len(session["turns"]) == 1
+            assert session["turns"][0]["input_messages"][0]["content"] == "Hello, how are you?"
