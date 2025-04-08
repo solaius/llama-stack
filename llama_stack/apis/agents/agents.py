@@ -38,6 +38,7 @@ from llama_stack.apis.safety import SafetyViolation
 from llama_stack.apis.tools import ToolDef
 from llama_stack.schema_utils import json_schema_type, register_schema, webmethod
 
+from fastapi import Query
 
 class Attachment(BaseModel):
     """An attachment to an agent turn.
@@ -529,7 +530,7 @@ class Agents(Protocol):
         self,
         session_id: str,
         agent_id: str,
-        turn_ids: Optional[List[str]] = None,
+        turn_ids: Optional[List[str]] = Query(None),
     ) -> Session:
         """Retrieve an agent session by its ID.
 
