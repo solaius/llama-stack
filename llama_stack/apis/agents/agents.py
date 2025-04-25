@@ -38,6 +38,7 @@ from llama_stack.apis.safety import SafetyViolation
 from llama_stack.apis.tools import ToolDef
 from llama_stack.schema_utils import json_schema_type, register_schema, webmethod
 
+from fastapi import Query
 
 class Attachment(BaseModel):
     """An attachment to an agent turn.
@@ -227,8 +228,16 @@ class AgentConfigCommon(BaseModel):
 class AgentConfig(AgentConfigCommon):
     model: str
     instructions: str
+    name: Optional[str] = None
     enable_session_persistence: Optional[bool] = False
-    response_format: Optional[ResponseFormat] = None
+    response_format: Optional[ResponseFormat] = Field(
+        default=None,
+        description="Format for the model's response. If provided, must include a 'type' field with one of: 'json_schema', 'grammar', 'json_object', or 'text'.",
+        examples=[
+            {"type": "json_object"},
+            {"type": "text"}
+        ]
+    )
 
 
 @json_schema_type
@@ -521,7 +530,7 @@ class Agents(Protocol):
         self,
         session_id: str,
         agent_id: str,
-        turn_ids: Optional[List[str]] = None,
+        turn_ids: Optional[List[str]] = Query(None),
     ) -> Session:
         """Retrieve an agent session by its ID.
 
